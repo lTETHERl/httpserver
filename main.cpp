@@ -12,8 +12,6 @@ int rc;
 const char* sql;
 sqlite3_stmt* stmt;
 
-string str = "Hello World!\n";
-
 unordered_map<string, string> mp;
 
 string select()
@@ -64,28 +62,6 @@ string select(string name)
     return to_res;
 }
 
-void handle_get_request(const httplib::Request& req, httplib::Response& res)
-{
-    string name = req.get_param_value("name");
-    
-    if (name != "")
-    {
-        res.set_content(select(name), "text/plain");
-    }
-
-    else
-    {
-        res.set_content(select(), "text/plain");
-    }
-
-    res.status = 200;
-    
-    for (auto& x : mp)
-    {
-        res.set_header(x.first, x.second);
-    }
-}
-
 void update(string name, string subject, string mark)
 {
     string temp = "UPDATE Students SET " + subject + " = ? WHERE Name = ?";
@@ -104,14 +80,37 @@ void update(string name, string subject, string mark)
     }
 }
 
-void handle_post_request(const httplib::Request& req, httplib::Response& res)
+void handle_select_request(const httplib::Request& req, httplib::Response& res)
 {
     res.status = 200;
 
-    update(req.get_header_value("name"), req.get_header_value("subject"), req.get_header_value("mark"));
+    string name = req.get_param_value("name");
 
-    str += req.get_header_value("name")+ req.get_header_value("subject")+ req.get_header_value("mark");
+    if (name != "")
+    {
+        res.set_content(select(name), "text/plain");
+    }
 
+    else
+    {
+        res.set_content(select(), "text/plain");
+    }
+
+    for (auto& x : mp)
+    {
+        res.set_header(x.first, x.second);
+    }
+}
+
+void handle_update_request(const httplib::Request& req, httplib::Response& res)
+{
+    res.status = 200;
+
+    string name = req.get_param_value("name");
+    string subject = req.get_param_value("subject");
+    string mark = req.get_param_value("mark");
+
+    update(name, subject, mark);
 
 }
 
@@ -119,15 +118,15 @@ int main() {
 
     rc = sqlite3_open("test.db", &db);
     
-    svr.Post("/update", handle_post_request);
+    svr.Get("/update", handle_update_request);
 
-    svr.Get("/select", handle_get_request);
+    svr.Get("/select", handle_select_request);
 
     svr.Get("/", [](const httplib::Request& req, httplib::Response& res) {
-        res.set_content(str, "text/plain");
+        res.set_content("Ўкольный ∆урнал", "text/plain");
         });
 
-    svr.listen("127.0.0.1", 8080);
+    svr.listen("0.0.0.0", 8080);
 
     return 0;
 }
